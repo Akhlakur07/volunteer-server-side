@@ -466,6 +466,57 @@ app.put("/posts/:id", async (req, res) => {
   }
 });
 
+// GET /requests?volunteerEmail=you@example.com
+app.get("/requests", async (req, res) => {
+  try {
+    if (!requestCollection) return res.status(503).send("DB not ready");
+    const { volunteerEmail } = req.query;
+    const q = volunteerEmail ? { volunteerEmail } : {};
+    const docs = await requestCollection
+      .find(q)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .toArray();
+
+    // add id string for frontend convenience
+    const out = docs.map((d) => ({ ...d, id: d._id?.toString?.() }));
+    res.json(out);
+  } catch (err) {
+    console.error("GET /requests error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+app.delete("/requests/:id", async (req, res) => {
+  try {
+    if (!requestCollection || !postCollection)
+      return res.status(503).send("DB not ready");
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) return res.status(400).send("Invalid id");
+
+    // Find the request first to know which post to adjust
+    const reqDoc = await requestCollection.findOne({ _id: new ObjectId(id) });
+    if (!reqDoc) return res.status(404).send("Not found");
+
+    // Delete request
+    const del = await requestCollection.deleteOne({ _id: reqDoc._id });
+    if (del.deletedCount === 0) return res.status(404).send("Not found");
+
+    // Increment the post's needed count back by 1
+    if (reqDoc.postId && ObjectId.isValid(reqDoc.postId)) {
+      await postCollection.updateOne(
+        { _id: new ObjectId(reqDoc.postId) },
+        { $inc: { needed: 1 } }
+      );
+    }
+
+    res.json({ status: "canceled" });
+  } catch (err) {
+    console.error("DELETE /requests/:id error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
 /* -------------------- START -------------------- */
 
 app.listen(port, () => {
