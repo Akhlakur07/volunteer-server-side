@@ -14,6 +14,8 @@ app.use(
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "http://localhost:3000",
+      "https://volunteer-auth-e1a75.web.app",
+      "https://volunteer-auth-e1a75.firebaseapp.com",
     ],
     credentials: true,
   })
@@ -38,7 +40,7 @@ let requestCollection;
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db("volunteerDB");
     userCollection = db.collection("users");
@@ -57,7 +59,7 @@ async function run() {
     );
     await requestCollection.createIndex({ createdAt: -1 });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ Mongo connection error:", err);
