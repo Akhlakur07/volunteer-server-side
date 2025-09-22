@@ -409,6 +409,63 @@ app.post("/requests", async (req, res) => {
   }
 });
 
+// DELETE /posts/:id
+app.delete("/posts/:id", async (req, res) => {
+  try {
+    if (!postCollection) return res.status(503).send("DB not ready");
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) return res.status(400).send("Invalid id");
+
+    const result = await postCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).send("Not found");
+
+    res.json({ status: "deleted" });
+  } catch (err) {
+    console.error("DELETE /posts/:id error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+// (Optional) PUT /posts/:id for updates
+app.put("/posts/:id", async (req, res) => {
+  try {
+    if (!postCollection) return res.status(503).send("DB not ready");
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) return res.status(400).send("Invalid id");
+
+    const allowed = [
+      "thumbnail",
+      "title",
+      "description",
+      "category",
+      "location",
+      "needed",
+      "deadline",
+      "status",
+    ];
+    const $set = {};
+    for (const k of allowed) {
+      if (k in req.body)
+        $set[k] = k === "needed" ? Number(req.body[k]) : req.body[k];
+    }
+    if (Object.keys($set).length === 0) {
+      return res.status(400).send("No valid fields to update");
+    }
+    $set.updatedAt = new Date().toISOString();
+
+    const result = await postCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set }
+    );
+
+    if (result.matchedCount === 0) return res.status(404).send("Not found");
+    res.json({ status: "updated" });
+  } catch (err) {
+    console.error("PUT /posts/:id error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
 /* -------------------- START -------------------- */
 
 app.listen(port, () => {
