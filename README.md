@@ -191,7 +191,3 @@ Collections are created lazily in database `volunteerDB`:
 - The API normalizes Mongo `_id` to `id` (string) in various list responses for frontend convenience.
 
 ---
-
-## License
-
-ISC
